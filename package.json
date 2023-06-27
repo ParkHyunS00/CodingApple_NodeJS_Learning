@@ -1,0 +1,14 @@
+{
+  "name": "codingapple_nodejs_learning",
+  "version": "1.0.0",
+  "description": "코딩애플 'Node.js, MongoDB로 빠르게 웹서비스 만들기' 수강기록 & 실습 모음\r <br>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
