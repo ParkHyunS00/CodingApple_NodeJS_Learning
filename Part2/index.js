@@ -36,6 +36,10 @@ MongoClient.connect(process.env.DB_URL, function(error, client){
 //     res.send('저장 완료');
 // });
 
+app.get('/write', function(req, res){
+    res.sendFile(__dirname + '/write.html');
+}); 
+
 // 저장한 데이터 보여주는 페이지 - /list로 GET 요청시 HTML 보여줌
 app.get('/list', function(req, res){
     // DB에 저장된 post라는 collection안의 제목인 모든 데이터를 꺼내주세요
@@ -65,3 +69,13 @@ app.post('/add', function(req, res){
 
     res.send('저장 완료');
 });
+
+app.delete('/delete', function(req, res){
+    console.log(req.body);
+
+    // _id의 값은 정수값이므로 캐스팅 필요
+    req.body._id = parseInt(req.body._id);
+    db.collection('post').deleteOne(req.body, function(error, result){
+        console.log('삭제 완료');
+    });
+})
