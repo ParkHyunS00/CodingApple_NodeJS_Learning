@@ -8,6 +8,9 @@ require('dotenv').config({path : '../.env'});
 
 app.use('/public', express.static('public'));
 
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
+
 
 // 어떤 폴더에 데이터를 저장할 것인가?
 var db; 
@@ -98,4 +101,82 @@ app.get('/detail/:id', function(req, res){
 
     })
 
-})
+});
+
+app.get('/edit/:id', function(req, res){
+    // 수정할 게시물 찾고 넘기기
+    db.collection('post').findOne({_id : parseInt(req.params.id)}, function(error, result){
+        if (result == null) {res.status(404).send()}
+        else{
+            console.log(result);
+            res.render('edit.ejs', { data : result }); // DB에서 찾은 게시물
+        }
+    })
+});
+
+app.put('/edit', function(req, res){
+    // {} 왼쪽엔 어떤 데이터를 바꿀지, 오른쪽엔 뭘로 바꿀지
+    db.collection('post').updateOne({_id : parseInt(req.body.id)}, {$set : { title : req.body.title, date : req.body.date}}, function(error, result){
+        res.redirect('/list'); // 수정해주고 list페이지로 이동
+
+        // 서버에선 응답이 꼭 필요. 하지 않는다면 페이지 멈춤
+    });
+});
+
+
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const session = require('express-session');
+
+// app.use = 미들웨어를 쓰겠다. 미들웨어란? 요청-응답 사이에 실행되는 코드
+app.use(session({secret : 'aaaaaa', resave : true, saveUninitialized : false}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.get('/', function(req, res){
+    res.render('index.ejs');
+});
+
+
+app.get('/login', function(req, res){
+    res.render('login.ejs');
+});
+// autenticate() : 로그인 인증해줌, 지금 local이라는 방식으로 인증해줌
+app.post('/login', passport.authenticate('local', {failureRedirect : '/fail'}), function(req, res){
+
+    // 성공시 여기로 페이지 이동, 실패시 '/fail' 페이지로 이동
+    res.redirect('/');
+});
+
+// 인증하는 방법 Strategy라고 칭함
+passport.use(new LocalStrategy({
+    usernameField : 'id', // html 폼의 id, pwd 이름을 가진 것
+    passwordField : 'pwd',
+    session : true, // session 정보를 저장할것인지
+    passReqToCallback : false, // 사용자가 입력한 아이디/비번 말고도 다른 정보도 검증시 true
+}, function(inputId, inputPwd, done){// 다른 정보도 검증한다면 파라미터 req 맨 앞에 추가 (req.body)
+    console.log(inputId, inputPwd);
+    db.collection('login').findOne({id : inputId}, function(error, result){ // DB에 사용자가 입력한 ID가 있는지 찾기
+        if (error) return done(error);
+
+        if (!result) return done(null, false, {message : '존재하지 않는 ID'}); // DB에서 찾은 결과가 없다면
+
+        if (inputId == result.pwd){ // DB에서 찾은 결과가 있다면
+            return done(null, result); // DB에서 찾은 비밀번호까지 비교, done()이란 3개의 파라미터 가짐 1. 서버에러, 2. 성공시 사용자 DB데이터
+            // 3. 에러메세지
+        } else {
+            return done(null, false, {message : '비밀번호가 틀렸습니다.'});
+        }
+    })
+}));
+
+
+// 세션 만들기
+// ID를 이용해 세션을 저장
+passport.serializeUser(function(user, done){
+    done(null, user.id); // 세션 데이터 만들고 세션의 ID 정보를 쿠키로 보냄
+});
+// 이 세션 데이터를 가진 사람을 찾아주는 것
+passport.deserializeUser(function(id, done){
+    done(null, {});
+});
