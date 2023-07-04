@@ -16,23 +16,7 @@
 
     <%- include('nav.html') %>
 
-      <h4 class="ml-2 my-3 text-center">서버에서 가져온 할 일 리스트</h4><!-- 서버에서 보낸 데이터 가져오기 JSP의 표현식 같음, ejs파일은 무조건 views폴더에 저장하기 -->
-
-      <div class="container input-group mb-2">
-        <input class="form-control" id="searchInput">
-        <button class="input-group-append btn btn-danger" id="search">Search</button>
-      </div>
-
-      <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
-      <script>
-        $('#search').click(function(){
-          var data = {value : $('#searchInput').val()}; // JS로 Query String 만들때 사용
-          // URL을 이것으로 바꿔주세요 -> GET 요청 (Query String)
-          window.location.replace('/search?' + $.param(data));
-        });
-
-      </script>
-
+      <h4 class="ml-2 my-3 text-center">검색 결과</h4><!-- 서버에서 보낸 데이터 가져오기 JSP의 표현식 같음, ejs파일은 무조건 views폴더에 저장하기 -->
 
       <div class="container">
         <ul class="list-group">
@@ -81,12 +65,5 @@
     <!-- Option 1: jQuery and Bootstrap Bundle (includes Popper) -->
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct" crossorigin="anonymous"></script>
-
-    <!-- Option 2: Separate Popper and Bootstrap JS -->
-    <!--
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js" integrity="sha384-+sLIOodYLS7CIrQpBjl+C7nPvqq+FbNUBDunl/OZv93DB7Ln/533i8e/mZXLi/P+" crossorigin="anonymous"></script>
-    -->
   </body>
 </html>
