@@ -45,14 +45,28 @@
             <p> 할일 마감날짜 : <%= posts[i].date %> </p>
             <button class="btn btn-danger delete" data-id="<%= posts[i]._id %>">삭제</button>
             <button class="btn btn-danger edit" onclick="location.href='/edit/<%= posts[i]._id %>'">수정</button>
+            <button class="btn btn-danger chat" data-id="<%= posts[i].writer %>">채팅하기</button>
           </li>
           <% } %>
         </ul>
       </div>
+      <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
+      <script>
+          $('.chat').click(function(e){
+          var postData = e.target.dataset.id;
+          $.post('/chatroom', {host : postData})
+          .then(()=>{
+            console.log('채팅방 생성완료');
+          })
+        });
+      </script>
+
 
       <!-- AJAX는 새로고침 없이 서버에 요청 할 수 있도록 도와줌 -->
       <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
       <script>
+
+
         $('.delete').click(function(e){
           var postNum = e.target.dataset.id; // e.target은 내가 누른 요소, dataset.id는 내가 누른 요소의 data-id값 
           var nowClick = $(this); // JQUERY에서 this는 현재 지금 이벤트가 동작하는 곳

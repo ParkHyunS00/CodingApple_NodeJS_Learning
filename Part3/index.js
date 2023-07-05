@@ -11,6 +11,12 @@ app.use('/public', express.static('public'));
 const methodOverride = require('method-override');
 app.use(methodOverride('_method'));
 
+const http = require('http').createServer(app);
+const {Server} = require('socket.io');
+const io = new Server(http);
+
+const {ObjectId} = require('mongodb');
+
 // 어떤 폴더에 데이터를 저장할 것인가?
 var db; 
 // MongoDB 연결하기
@@ -27,10 +33,36 @@ MongoClient.connect(process.env.DB_URL, function(error, client){
     // _id 값 지정하지 않으면 데이터 구분하기 위한 임시 _id값 발급되어 같이 저장됨
 
     // DB 연결되면 할 일
-    app.listen(process.env.PORT, function(){
+    http.listen(process.env.PORT, function(){
         console.log('listening on ' + process.env.PORT)
     });
 });
+
+app.get('/socket', function(req, res){
+    res.render('socket.ejs');
+});
+
+// 소켓 접속시 서버가 뭔가 실행, 이벤트리스터
+io.on('connection', function(socket){
+    console.log(socket.id);
+    
+    socket.on('room1-send', function(data){
+        io.to('room1').emit('broadcast', data);
+    });
+    socket.on('joinroom', function(data){
+        socket.join('room1');
+    });
+
+
+    // 유저가 보낸 데이터 수신
+    socket.on('user-send', function(data){
+        io.emit('broadcast', data); // 서버가 유저에 송신(모든이에게 - 브로드캐스팅)
+        // io.to(socket.id).emit('broadcast', data); // 특정 유저에게만 송신
+    });
+
+})
+
+
 
 // 숙제 /add 라는 경로로 post요청시 데이터 2개를 보내주면, 'post' 경로에 그 데이터 저장해보기
 // app.post('/add', function(req, res){
@@ -261,5 +293,101 @@ app.put('/edit', function(req, res){
         res.redirect('/list'); // 수정해주고 list페이지로 이동
 
         // 서버에선 응답이 꼭 필요. 하지 않는다면 페이지 멈춤
+    });
+});
+
+// '/shop' 경로로 요청했을 때 이런 미들웨어 적용해라
+app.use('/shop', require('./routes/shop.js')); // app.use = 미들웨어를 사용하려고 할 때
+
+// '/board/sub' 경로로 요청했을 때 이 미들웨어 적용해라
+app.use('/board/sub', require('./routes/board.js'));
+
+
+// multer 라이브러리 사용
+let multer = require('multer');
+var storage = multer.diskStorage({
+    destination : function(req, file, cb){
+        cb(null, './public/image')
+    },
+    filename : function(req, file, cb){
+        file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf-8'); // 한글 인코딩 문제
+        cb(null, file.originalname)
+    }
+});
+var upload = multer({storage : storage});
+
+app.get('/upload', function(req, res){
+    res.render('upload.ejs');
+});
+
+// 파일 여러개 업로드 하려면 single 말고 array 사용
+app.post('/upload', upload.single('profile'), function(req, res){
+    res.send('Complete');
+});
+
+// 업로드한 이미지 보여주기
+app.get('/image/:imageName', function(req, res){
+    res.sendFile(__dirname + '/public/image/' + req.params.imageName);
+})
+
+app.post('/chatroom', isLogin, function(req, res){
+    var saveData = {
+        member : [ObjectId(req.body.host), req.user._id],
+        title : req.body.host + ' Chatting',
+        date : new Date()
+    };
+
+    db.collection('chatroom').insertOne(saveData, function(error, result){
+        res.send('Save Complete');
+    });
+});
+
+app.get('/chat', isLogin, function(req, res){
+    db.collection('chatroom').find({member : req.user._id}).toArray().then((result)=>{
+        console.log(result);
+        res.render('chat.ejs', {data : result});
+    })
+});
+
+app.post('/message', isLogin, function(req, res){
+    var saveData = {
+        parent : req.body.parent,
+        userId : req.user._id,
+        content : req.body.content,
+        date : new Date()
+    }
+    db.collection('message').insertOne(saveData).then(()=>{
+        console.log('DB 저장 성공');
+        res.send('DB 저장 성공');
+    })
+});
+
+// 유저간 실시간 소통채널 개설
+app.get('/message/:parentId', isLogin, function(req, res){
+    res.writeHead(200, { // 여러번 응답 가능
+        "Connection" : "keep-alive",
+        "Content-Type" : "text/event-stream",
+        "Cache-Control" : "no-cache",
+    });
+    // event : 보낼데이터이름\n
+    // data : 보낼데이터\n\n
+
+    db.collection('message').find({ parent : req.params.parentId}).toArray()
+    .then((result)=>{
+        res.write('event:test\n'); // 이렇게 여러번 응답 가능
+        res.write('data:'+JSON.stringify(result)+'\n\n'); // 공백 없어야함.
+    })
+    
+    // MongoDB Change Stream 설정 -> MongoDB를 능동적으로 사용
+    const pipeLine = [
+        { $match: { 'fullDocument.parent' : req.params.parentId } }
+    ];
+    const collection = db.collection('message');
+    const changeStream = collection.watch(pipeLine); // 감시중 .. 변동사항이 생기면 바로바로 아래 코드 실행해줌
+    changeStream.on('change', (result)=>{
+        // result에 수정-삭제 결과들이 담겨있음
+        // result.fullDocument -> 추가된 document를 보려면
+        res.write('event:test\n');
+        res.write('data:'+JSON.stringify([result.fullDocument])+'\n\n');
     });
 });
